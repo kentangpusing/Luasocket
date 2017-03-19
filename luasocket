@@ -1,28 +1,38 @@
---server
+--listener
 local socket = require("socket")
-local server = assert(socket.bind("*",0))
-local ip, port = server:getsockname()
-print("Please telnet to localhost on port " .. port)
-print("After connecting, you have 10s to enter a line to be echoed")
-while 1 do
-  local client = server:accept()
-  client:settimeout(10)
-  local line, err = client:receive()
-  if not err then client:send(line .. "\n") end
-  client:close()
+host = host or "*"
+port = port or 8080
+if arg then
+	host = arg[1] or host
+	port = arg[2] or port
 end
+print("Binding to host '" ..host.. "' and port " ..port.. "...")
+s = assert(socket.bind(host, port))
+i, p   = s:getsockname()
+assert(i, p)
+print("Waiting connection from talker on " .. i .. ":" .. p .. "...")
+c = assert(s:accept())
+print("Connected. Here is the stuff:")
+l, e = c:receive()
+while not e do
+	print(l)
+	l, e = c:receive()
+end
+print(e)
 
---client
-local host, port = "10.115.65.93", 8080
+--talker
 local socket = require("socket")
-local tcp = assert(socket.tcp())
-
-tcp:connect(host,port);
-tcp:send("hello world\n");
-
-while true do
-  local s, status, partial = tcp:receive()
-  print(s or partial)
-  if status == "closed" then break end
+host = host or "localhost"
+port = port or 8080
+if arg then
+	host = arg[1] or host
+	port = arg[2] or port
 end
-tcp:close()
+print("Attempting connection to host '" ..host.. "' and port " ..port.. "...")
+c = assert(socket.connect(host, port))
+print("Connected! Please type stuff (empty line to stop):")
+l = io.read()
+while l and l ~= "" and not e do
+	assert(c:send(l .. "\n"))
+	l = io.read()
+end
